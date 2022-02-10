@@ -1,9 +1,11 @@
 import io
+import boto3
 import pyspark.sql.functions as psf
 from pyspark.sql import SparkSession
 from pyspark import SparkContext, SparkConf
 import configparser
 import os
+import json
 from pyspark.sql.functions import col
 
 #add JAR to spark session 
@@ -41,5 +43,12 @@ def cast_timestamps(df, time_cols):
 
 s3_df = flatten_df(s3_df)
 s3_df = cast_timestamps(s3_df, ['date_local', 'date_utc'])
-s3_df.printSchema()
-s3_df.show() 
+
+client = boto3.client('secretsmanager')
+
+response = client.get_secret_value(
+    SecretId='snowflake/capstone/login'
+)
+
+snowflake_secrets = json.loads(response['SecretString'])
+
