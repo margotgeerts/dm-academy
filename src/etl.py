@@ -8,8 +8,9 @@ import os
 import json
 from pyspark.sql.functions import col
 
+
 #add JAR to spark session 
-spark = SparkSession.builder.appName('my_app').config('spark.jars.packages', 'org.apache.hadoop:hadoop-aws:3.1.2').getOrCreate()
+spark = SparkSession.builder.appName('my_app').config('spark.jars.packages', 'org.apache.hadoop:hadoop-aws:3.1.2,net.snowflake:spark-snowflake_2.12:2.9.0-spark_3.1,net.snowflake:snowflake-jdbc:3.13.3').getOrCreate()
 
 
 #get aws credentials, not necessary, in aws configure
@@ -24,7 +25,7 @@ spark.sparkContext._jsc.hadoopConfiguration().set("fs.s3a.impl", "org.apache.had
 
 s3_folder = 's3a://dataminded-academy-capstone-resources/raw/open_aq/'
 
-s3_df=spark.read.json(s3_folder+"data_part_1.json")
+s3_df=spark.read.json(s3_folder)
 
 def flatten_df(nested_df):
     flat_cols = [c[0] for c in nested_df.dtypes if c[1][:6] != 'struct']
@@ -51,4 +52,23 @@ response = client.get_secret_value(
 )
 
 snowflake_secrets = json.loads(response['SecretString'])
+schema = "MARGOT"
+table_name= "my_table"
 
+SNOWFLAKE_SOURCE_NAME = "net.snowflake.spark.snowflake"
+sfOptions = {
+  "sfURL" : f"{snowflake_secrets['URL']}.snowflakecomputing.com",
+  "sfUser" : f"{snowflake_secrets['USER_NAME']}",
+  "sfPassword" : f"{snowflake_secrets['PASSWORD']}",
+  "sfDatabase" : f"{snowflake_secrets['DATABASE']}",
+  "sfSchema" : schema,
+  "sfWarehouse" : f"{snowflake_secrets['WAREHOUSE']}"
+}
+
+
+
+s3_df.write.format(SNOWFLAKE_SOURCE_NAME) \
+  .options(**sfOptions) \
+  .option("dbtable", table_name) \
+  .mode("overwrite") \
+  .save()
