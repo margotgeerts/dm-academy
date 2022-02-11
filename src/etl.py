@@ -14,13 +14,13 @@ spark = SparkSession.builder.appName('my_app').config('spark.jars.packages', 'or
 
 
 #get aws credentials, not necessary, in aws configure
-#access_key = os.environ['AWS_ACCESS_KEY']
-#secret_key = os.environ['AWS_SECRET_KEY']
-#spark.sparkContext._jsc.hadoopConfiguration().set("fs.s3a.access.key", access_key)
-#spark.sparkContext._jsc.hadoopConfiguration().set("fs.s3a.secret.key", secret_key)
+# access_key = os.environ['AWS_ACCESS_KEY']
+# secret_key = os.environ['AWS_SECRET_KEY']
+# spark.sparkContext._jsc.hadoopConfiguration().set("fs.s3a.access.key", access_key)
+# spark.sparkContext._jsc.hadoopConfiguration().set("fs.s3a.secret.key", secret_key)
+spark.sparkContext._jsc.hadoopConfiguration().set("fs.s3a.aws.credentials.provider", "com.amazonaws.auth.DefaultAWSCredentialsProviderChain")
 
 #Make s3 a recongnizable file system
-spark.sparkContext._jsc.hadoopConfiguration().set("fs.s3a.aws.credentials.provider", "com.amazonaws.auth.DefaultAWSCredentialsProviderChain")
 spark.sparkContext._jsc.hadoopConfiguration().set("fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
 
 s3_folder = 's3a://dataminded-academy-capstone-resources/raw/open_aq/'
@@ -45,7 +45,7 @@ def cast_timestamps(df, time_cols):
 s3_df = flatten_df(s3_df)
 s3_df = cast_timestamps(s3_df, ['date_local', 'date_utc'])
 
-client = boto3.client('secretsmanager')
+client = boto3.client('secretsmanager', region_name='eu-west-1')
 
 response = client.get_secret_value(
     SecretId='snowflake/capstone/login'
